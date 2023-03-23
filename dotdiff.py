@@ -205,6 +205,7 @@ while(cap.isOpened()):
     if save_output_video:
         out.write(out_frame)
     if keyboard_logic():
+        print(f"Quit at frame {nframe }")
         break
 
 #Finish up
