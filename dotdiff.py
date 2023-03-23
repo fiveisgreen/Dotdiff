@@ -64,6 +64,11 @@ def XY2YX(coords):
 
 def mouse_click_logic(event, x, y, flags, param):
     #call with cv2.setMouseCallback(window_name, mouse_click_logic)
+    #for a list of available callback events, see: 
+    #https://docs.opencv.org/3.4/d0/d90/group__highgui__window__flags.html#ga927593befdddc7e7013602bca9b079b0
+    #cv.EVENT_RBUTTONUP indicates that right mouse button is released. Name convention holds R/L, UP, DOWN
+    #cv.EVENT_LBUTTONDBLCLK indicates that left mouse button is double clicked.
+    #cv.EVENT_MOUSEWHEEL positive and negative values mean forward and backward scrolling, respectively.
     if event == cv2.EVENT_LBUTTONDOWN:  
         print(f"Mouse clicked x,y = {x}, {y}")
         return (y,x)
@@ -216,6 +221,7 @@ cv2.destroyAllWindows()
 #value_thresholdolding options: https://docs.opencv.org/3.4/d7/d4d/tutorial_py_value_thresholdolding.html
 #rectangles:
     #out_frame = cv2.rectangle(out_frame, rec_start_point, rec_end_point, overlay_color, overlay_line_width_pixels)
+#circles: cv2.circle(img, center, radius, something, line_width?)
 
 #real magic: the blob detector: https://www.geeksforgeeks.org/find-circles-and-ellipses-in-an-image-using-opencv-python/
 
@@ -224,3 +230,5 @@ cv2.destroyAllWindows()
 #cropping a section of an image: something like 
     #cr = crop(1,1,64,67)
     #cropped_img = image(cr)
+#keep in mind the selectROIs function for drawing constraint boxes on the image. 
+
