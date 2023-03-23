@@ -34,7 +34,7 @@ class Cluster:
         self.XWstdev = -1
         self.Wavg = -1
         self.Wstdev = -1
-        self.validW = False
+        #self.validW = False
         self.S = self.__Sums()
     def register(self, pix): #pixels come as ( (y,x), pixel_value). Cannot be called after finalize()
         y,x = pix[0] 
@@ -82,13 +82,13 @@ class Cluster:
                 #stdev_factor = sqrt(1.0 - (float(self.S.W2sum - 2*self.Wmin*self.S.Wsum + (self.N*self.Wmin)**2)/stdev_factor_deonominator ))
                 self.XWstdev = self.Xstdev*stdev_factor
                 self.YWstdev = self.Ystdev*stdev_factor
-                self.validW = True
+                #self.validW = True
             else: #This happens when all weights are identical.
                 self.YWavg = self.Yavg 
                 self.XWavg = self.Xavg 
                 self.XWstdev = self.Xstdev
                 self.YWstdev = self.Ystdev
-                self.validW = False
+                #self.validW = False
         del self.S
     def get_center(self,use_weighted_averages = False):
         #returns (y,x) coordinates. y,x because that can be used to index the image and get pixel values.
@@ -138,6 +138,10 @@ def cluster(img, seed, minval, imgW, imgH, cluster_color ):
         for item in new_items:
             img[item[0]] = color_C 
         del todo_list[0]
+        if c.N >= 4096: #if we're over-clustering, break
+            c.finalize()
+            c.N = -c.N
+            return c
     c.finalize()
     return c
 
@@ -177,17 +181,6 @@ def seek(img, seed_guess, minval, imgW, imgH, max_radius):
    print("seek fails around seed ",seed_guess)
    return False, (-1,-1)
 
-
-"""
-def seek(img, seed_guess, minval, imgW, imgH, max_radius):
-   if img[seed_guess] >= minval:
-        return seed_guess
-   for R in range(5, max_radius, 5):
-       dobreak, seed_guess = __square_seek(img, seed_guess, minval, imgW, imgH, R)
-       if dobreak:
-           return True, seed_guess 
-   return False, (-1,-1)
-"""
 
 """
 print("begin test")

@@ -2,4 +2,8 @@
 *.png
 *.xcf
 TODO.txt
+pat.txt
 gitignore_py_template.txt 
+backups/
+__pycache__
+__pycache__/*

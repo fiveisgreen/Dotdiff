@@ -1,6 +1,9 @@
 import numpy as np
 import cv2
 import cluster as bc
+import sys
+import os.path
+
 
 #TODO: 
 #* set frame position with cap.set(cv2.cAP_PROP_POS_FRAMES, frame_position)
@@ -24,6 +27,13 @@ input_video_file_name = '2023-03-16 11-11-07.mp4'
 upper_cluster_frame0_coords = (219, 893) #Y, X 
 lower_cluster_frame0_coords = (945, 934) #Y, X 
 input_video_file_name = '2023-03-20 21-03-27 BdotsOnW.mp4'
+if len(sys.argv) > 1:
+    os.path.isfile(sys.argv[1])
+    input_video_file_name = sys.argv[1]
+if not os.path.isfile(input_video_file_name):
+    print(f"File {input_video_file_name} not found.")
+    sys.exit()
+
 #input_video_file_name = '2023-03-21 11-19-42 dont process.mp4'
 #input_video_file_name = 'dots on black mask.mp4'
 
