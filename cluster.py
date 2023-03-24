@@ -1,4 +1,11 @@
 from math import sqrt
+from functools import reduce
+import numpy as np
+
+"""
+optomization: 
+    Cluster and look_at_neighbors_swiss are the slow parts. Cluster.__init__ is pretty bad too, particularly in the list comprehensions. 
+"""
 
 class Cluster:
     def __init__(self, X,Y,W,N):
@@ -25,17 +32,18 @@ class Cluster:
             self.Ymin = float(min(Y) )
             self.Ymax = float(max(Y) )
             Ysum      = float(sum(Y) )
-            Y2sum     = float(sum([y*y for y in Y]) ) #0.078
+            Y2sum     = float(np.sum(np.square(Y)) ) #fastest over list comprehension, generators, and np.dot
             self.Xmin = float(min(X) )
             self.Xmax = float(max(X) )
             Xsum      = float(sum(X) )
-            X2sum     = float(sum([x*x for x in X]) ) #0.077
+            X2sum     = float(np.sum(np.square(X)))
             self.Wmin = float(min(W) )
             self.Wmax = float(max(W) )
-            Wsum      = float(sum(W) )
-            W2sum     = sum([float(v)**2 for v in W]) #0.4 s 
-            WXsum     = float(sum([x*w for x,w in zip(X,W)]) ) #slow 0.38s :: 60frames
-            WYsum     = float(sum([y*w for y,w in zip(Y,W)]) ) #slow 0.38s
+            Wnp = np.array(W, dtype=np.uint32)
+            Wsum  = float(np.sum(Wnp))
+            W2sum = float(np.sum(np.square(Wnp)))
+            WXsum     = float(np.dot(X,W) )
+            WYsum     = float(np.dot(Y,W) )
             ####
             Nfloat = float(N)
             self.Yavg = Ysum/Nfloat
@@ -50,9 +58,9 @@ class Cluster:
             if stdev_factor_deonominator > 0:
                 self.YWavg = float(WYsum - self.Wmin*Ysum)/Wdiff
                 self.XWavg = float(WXsum - self.Wmin*Xsum)/Wdiff
-                stdev_factor_radical = 1.0 - (float(W2sum - 2*self.Wmin*Wsum + N*(self.Wmin*self.Wmin) )/stdev_factor_deonominator )
+                stdev_factor_radical = 1.0 - (float(W2sum - self.Wmin*Wsum*2 + N*(self.Wmin*self.Wmin) )/stdev_factor_deonominator )
                 #print(f"N {N}, stdev_factor_radical {stdev_factor_radical }, Wmin {self.Wmin}, Wmax {self.Wmax}, Wsum {Wsum} W2sum {W2sum}, deominator {stdev_factor_deonominator}")
-                stdev_factor = 1
+                stdev_factor = 1 
                 if stdev_factor_radical > 0:
                     stdev_factor = sqrt(stdev_factor_radical)
                 self.XWstdev = self.Xstdev*stdev_factor
@@ -77,16 +85,69 @@ class Cluster:
         else:
             return sqrt( (self.Yavg - cluster2.Yavg)**2 + (self.Xavg - cluster2.Xavg)**2) 
 
-def look_at_neighbors_swiss(img, center, minval, imgW, imgH):
+def look_at_neighbors_swiss(img, todo_list, center, minval, imgW, imgH, color):
     #add pixels to todo_list, in a swiss cross, pattern, if their values are >= minval
     #constrained to be in the image.
     #returns a todo list segment whose elements are tuples ( ( y, x), pixel_value )
     y,x = center
+    xp = x+1
+    xm = x-1
+    yp = y+1
+    ym = y-1
+    if xp < imgW and img[y, xp] >= minval:
+        todo_list.append((y,xp))
+        img[y,xp] = color 
+    if x > 0 and img[y,xm] >= minval:
+        todo_list.append((y,xm))
+        img[y,xm] = color 
+    if yp < imgH and img[yp,x] >= minval:
+        todo_list.append((yp,x))
+        img[yp,x] = color 
+    if y > 0 and img[ym,x] >= minval:
+        todo_list.append((ym,x))
+        img[ym,x] = color 
+
+    """
+    y,x = center
+    if x < imgW-1 and img[y, x+1] >= minval:
+        todo_list.append((y,x+1))
+        img[y,x+1] = cluster_color 
+    if x > 0 and img[y,x-1] >= minval:
+        todo_list.append((y,x-1))
+        img[y,x-1] = cluster_color 
+    if y < imgH-1 and img[y+1,x] >= minval:
+        todo_list.append((y+1,x))
+        img[y+1,x] = cluster_color 
+    if y > 0 and img[y-1,x] >= minval:
+        todo_list.append((y-1,x))
+        img[y-1,x] = cluster_color 
+
+
+    y,x = center
+    coords = ( (y,x+1), (y,x-1), (y+1,x), (y-1,x) )
+    if x < imgW-1 and img[coords[0]] >= minval:
+        todo_list.append(coords[0])
+        img[coords[0]] = cluster_color 
+    if x > 0 and img[coords[1]] >= minval:
+        todo_list.append(coords[1])
+        img[coords[1]] = cluster_color 
+    if y < imgH-1 and img[coords[2]] >= minval:
+        todo_list.append(coords[2])
+        img[coords[2]] = cluster_color 
+    if y > 0 and img[coords[3]] >= minval:
+        todo_list.append(coords[3])
+        img[coords[3]] = cluster_color 
+
+    
+    y,x = center
     validity = (x < imgW-1, x > 0, y < imgH-1, y > 0) 
-    coords = ( (y,x+1), (y,x-1), (y+1,x), (y-1,x))
-    return [ coords[i] for i in range(4) if validity[i] and img[coords[i]] >= minval]
-            
-    """ 
+    coords = ( (y,x+1), (y,x-1), (y+1,x), (y-1,x) )
+    #return [ coords[i] for i in range(4) if validity[i] and img[coords[i]] >= minval]
+    for i in range(4):
+        if validity[i] and img[coords[i]] >= minval:
+            todo_list.append(coords[i])
+            img[coords[i]] = cluster_color 
+
     #47ms/F correct.
     new_todo = [] #a fifo
     validity = (center[1] < imgW-1, center[1] > 0, center[0] < imgH-1, center[0] > 0) #E, W, N, S
@@ -117,7 +178,6 @@ def cluster(img, seed, minval, imgW, imgH, cluster_color ):
     img[seed] = cluster_color  
     while todo_list:
         center = todo_list[0] #get front item
-        #c.register(center, img[center]) #notice the todo list doesn't need pixel values, only reg does. 
         Y.append(center[0])
         X.append(center[1])
         W.append(img[center])
@@ -126,10 +186,7 @@ def cluster(img, seed, minval, imgW, imgH, cluster_color ):
             c = Cluster(X, Y, W, N)
             c.N = -c.N
             return c
-        new_items = look_at_neighbors_swiss(img, center, minval, imgW, imgH)
-        todo_list.extend(new_items )
-        for item in new_items:
-            img[item] = cluster_color 
+        look_at_neighbors_swiss(img, todo_list, center, minval, imgW, imgH, cluster_color)
         del todo_list[0]
     return Cluster(X, Y, W, N)
 
