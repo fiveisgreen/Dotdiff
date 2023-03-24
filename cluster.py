@@ -85,138 +85,51 @@ class Cluster:
         else:
             return sqrt( (self.Yavg - cluster2.Yavg)**2 + (self.Xavg - cluster2.Xavg)**2) 
 
-def look_at_neighbors_swiss(img, todo_list, center, minval, imgW, imgH, color):
-    #add pixels to todo_list, in a swiss cross, pattern, if their values are >= minval
-    #constrained to be in the image.
-    #returns a todo list segment whose elements are tuples ( ( y, x), pixel_value )
-    y,x = center
-    xp = x+1
-    xm = x-1
-    yp = y+1
-    ym = y-1
-    if xp < imgW and img[y, xp] >= minval:
-        todo_list.append((y,xp))
-        img[y,xp] = color 
-    if x > 0 and img[y,xm] >= minval:
-        todo_list.append((y,xm))
-        img[y,xm] = color 
-    if yp < imgH and img[yp,x] >= minval:
-        todo_list.append((yp,x))
-        img[yp,x] = color 
-    if y > 0 and img[ym,x] >= minval:
-        todo_list.append((ym,x))
-        img[ym,x] = color 
-
-    """
-    y,x = center
-    if x < imgW-1 and img[y, x+1] >= minval:
-        todo_list.append((y,x+1))
-        img[y,x+1] = cluster_color 
-    if x > 0 and img[y,x-1] >= minval:
-        todo_list.append((y,x-1))
-        img[y,x-1] = cluster_color 
-    if y < imgH-1 and img[y+1,x] >= minval:
-        todo_list.append((y+1,x))
-        img[y+1,x] = cluster_color 
-    if y > 0 and img[y-1,x] >= minval:
-        todo_list.append((y-1,x))
-        img[y-1,x] = cluster_color 
-
-
-    y,x = center
-    coords = ( (y,x+1), (y,x-1), (y+1,x), (y-1,x) )
-    if x < imgW-1 and img[coords[0]] >= minval:
-        todo_list.append(coords[0])
-        img[coords[0]] = cluster_color 
-    if x > 0 and img[coords[1]] >= minval:
-        todo_list.append(coords[1])
-        img[coords[1]] = cluster_color 
-    if y < imgH-1 and img[coords[2]] >= minval:
-        todo_list.append(coords[2])
-        img[coords[2]] = cluster_color 
-    if y > 0 and img[coords[3]] >= minval:
-        todo_list.append(coords[3])
-        img[coords[3]] = cluster_color 
-
-    
-    y,x = center
-    validity = (x < imgW-1, x > 0, y < imgH-1, y > 0) 
-    coords = ( (y,x+1), (y,x-1), (y+1,x), (y-1,x) )
-    #return [ coords[i] for i in range(4) if validity[i] and img[coords[i]] >= minval]
-    for i in range(4):
-        if validity[i] and img[coords[i]] >= minval:
-            todo_list.append(coords[i])
-            img[coords[i]] = cluster_color 
-
-    #47ms/F correct.
-    new_todo = [] #a fifo
-    validity = (center[1] < imgW-1, center[1] > 0, center[0] < imgH-1, center[0] > 0) #E, W, N, S
-    coords = ( (center[0],center[1]+1),
-            (center[0],center[1]-1),
-            (center[0]+1,center[1]),
-            (center[0]-1,center[1]))
-    for i in range(4):
-        if validity[i]:
-            ival = img[coords[i]]
-            if is_cluster(ival, minval):
-                new_todo.append((coords[i], ival))
-    return new_todo
-    """
-        
 def cluster(img, seed, minval, imgW, imgH, cluster_color ):
         #expect img[y][x] so max indicies are img[imgH-1][imgW-1]
         #accepted pixels must be light colored, with value >= minval
-    cluster_color = max(0,min(cluster_color, minval-1))  #new color of clustered pixels, must be less than minval (~162)
+    N = 0
+    y,x = seed
     Y = []
     X = []
     W = []
-    N = 0
-    v = img[seed]
-    if v < minval: #if not is_cluster(v, minval): #if seed isn't a candidate 
+    if img[y,x] < minval: 
         return Cluster(X, Y, W, N)
+    cluster_color = max(0,min(cluster_color, minval-1))  #new color of clustered pixels, must be less than minval (~162)
     todo_list = [ seed ] # a fifo
-    img[seed] = cluster_color  
+    img[y,x] = cluster_color  
+    
     while todo_list:
-        center = todo_list[0] #get front item
-        Y.append(center[0])
-        X.append(center[1])
-        W.append(img[center])
         N+=1
+        y,x = todo_list[0] #get front item
+        Y.append(y)
+        X.append(x)
+        W.append(img[y,x])
         if N >= 4096: #if we're over-clustering, break
             c = Cluster(X, Y, W, N)
             c.N = -c.N
             return c
-        look_at_neighbors_swiss(img, todo_list, center, minval, imgW, imgH, cluster_color)
+        ### do look_at_neighbors_swiss
+        yp = y+1
+        if yp < imgH and img[yp,x] >= minval:
+            todo_list.append((yp,x))
+            img[yp,x] = cluster_color 
+        ym = y-1
+        if y > 0 and img[ym,x] >= minval:
+            todo_list.append((ym,x))
+            img[ym,x] = cluster_color 
+        xp = x+1
+        if xp < imgW and img[y, xp] >= minval:
+            todo_list.append((y,xp))
+            img[y,xp] = cluster_color 
+        xm = x-1
+        if x > 0 and img[y,xm] >= minval:
+            todo_list.append((y,xm))
+            img[y,xm] = cluster_color 
+        ###
         del todo_list[0]
     return Cluster(X, Y, W, N)
 
-"""
-def cluster(img, seed, minval, imgW, imgH, cluster_color ):
-        #expect img[y][x] so max indicies are img[imgH-1][imgW-1]
-        #accepted pixels must be light colored, with value >= minval
-    cluster_color = max(0,min(cluster_color, minval-1))  #new color of clustered pixels, must be less than minval (~162)
-    c = Cluster(imgW, imgH)
-    v = img[seed]
-    if v < minval: #if not is_cluster(v, minval): #if seed isn't a candidate 
-        c.finalize()
-        return c
-    todo_list = [ (seed, v) ] # a fifo
-    img[seed] = cluster_color  
-    while len(todo_list) > 0:
-        center = todo_list[0]
-        c.register(center) #notice the todo list doesn't need pixel values, only reg does. 
-        new_items = look_at_neighbors_swiss(img, center[0], minval, imgW, imgH)
-        todo_list.extend(new_items )
-        for item in new_items:
-            img[item[0]] = cluster_color 
-        del todo_list[0]
-        if c.N >= 4096: #if we're over-clustering, break
-            c.finalize()
-            c.N = -c.N
-            return c
-    c.finalize()
-    return c
-"""
 
 def seek(img, seed_guess, minval, imgW, imgH, max_radius):
    #returns bool success in finding seed, and the new seed. If no seed is found, return false, (-1,-1)
