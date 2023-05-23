@@ -10,7 +10,9 @@ There are two scripts of importance: a basically blank computer vision video pla
 $ python3 helloworld.py
 
 And the main program: dotdiff.py. This can use either hard-coded input video file names, or they can be supplied to the first command line argument. 
+
 $ python dotdiff.py
+
 $ python dotdiff.py "myInputVideo.mp4"
 
 Currently only mp4 videos are supported.
